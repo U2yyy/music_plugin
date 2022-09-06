@@ -1,4 +1,4 @@
-import string
+
 import json
 import aiohttp
 import asyncio
@@ -28,7 +28,7 @@ async def getSong(song_id:int):
             #print(await res.json())
             song = await res.json()
             if song['code'] != 200:
-                return await None
+                return None
             print(song['data']['url'])
 loop = asyncio.get_event_loop()
 task = loop.create_task(getSong(song_id))
