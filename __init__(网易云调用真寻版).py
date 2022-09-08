@@ -1,11 +1,9 @@
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent, Message
-from nonebot.params import CommandArg
-from nonebot.typing import T_State
+from nonebot.params import CommandArg,Arg
+from nonebot.matcher import Matcher
 from services.log import logger
 from nonebot import on_command
-import json
 import aiohttp
-import asyncio
 
 __zx_plugin_name__ = "网易云点歌"
 __plugin_usage__ = """
@@ -47,14 +45,14 @@ async def get_song_url(song_id:int):
 music_handler = on_command("听个",aliases={"网易云"}, priority=5, block=True)
 
 @music_handler.handle()
-async def handle_first_receive(state: T_State, arg: Message = CommandArg()):
-    #将命令语句格式化并存入state字典中
-    if args := arg.extract_plain_text().strip():
-        state["key_word"] = args
+async def handle_first_receive(matcher: Matcher, args: Message = CommandArg()):
+    #这里应该是set key_word值
+    if args:
+        matcher.set_arg("key_word")
 
 @music_handler.got("key_word", prompt="不给点关键词小文顺怎么找歌！来点来点！")
-async def _(bot: Bot, event: MessageEvent, state: T_State):
-    song = state["key_word"]
+async def _(bot: Bot, event: MessageEvent, key_word: Message = Arg()):
+    song = key_word.extract_plain_text().strip()
     song_id = await get_song_id(song)
     if not song_id:
         await music_handler.finish("小文顺没有找到这首歌！", at_sender=True)

@@ -1,12 +1,9 @@
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, GroupMessageEvent, Message
-from nonebot.params import CommandArg
-from nonebot.typing import T_State
+from nonebot.params import CommandArg,Arg
+from nonebot.matcher import Matcher
 from nonebot import logger
 from nonebot import on_command
-import json
 import aiohttp
-import asyncio
-
 
 async def get_song_id(song_name: str) -> int:
     url = 'http://127.0.0.1:7002/kuwo/search/searchMusicBykeyWord?key='+song_name+''
@@ -30,23 +27,22 @@ async def get_song_url(song_id:int):
 music_handler = on_command("来首",aliases={"点歌"}, priority=5, block=True)
 
 @music_handler.handle()
-async def handle_first_receive(state: T_State, arg: Message = CommandArg()):
-    #将命令语句格式化并存入state字典中
-    if args := arg.extract_plain_text().strip():
-        state["song_name"] = args
+async def handle_first_receive(matcher: Matcher, args: Message = CommandArg()):
+    if args:
+        matcher.set_arg("song_name",args)
 
 @music_handler.got("song_name", prompt="歌名是？")
-async def _(bot: Bot, event: MessageEvent, state: T_State):
-    song = state["song_name"]
+async def _(bot: Bot, event: MessageEvent, song_name: Message = Arg()):
+    song = song_name.extract_plain_text().strip()
     song_id = await get_song_id(song)
     if not song_id:
         await music_handler.finish("没有找到这首歌！", at_sender=True)
     song_mp4 = await (get_song_url(song_id))
     if not song_mp4:
-        await music_handler.finish("没有找到这首歌！" at_sender=True)
+        await music_handler.finish("没有找到这首歌！", at_sender=True)
     await music_handler.send(Message('[CQ:record,file='+song_mp4+']'))
     logger.info(
         f"(USER {event.user_id}, GROUP "
         f"{event.group_id if isinstance(event, GroupMessageEvent) else 'private'})"
         f" 来首 :{song}"
-    )
+        )
